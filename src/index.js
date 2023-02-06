@@ -7,13 +7,14 @@ import reportWebVitals from "./reportWebVitals";
 import "@rainbow-me/rainbowkit/styles.css";
 import { getDefaultWallets, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import { chain, configureChains, createClient, WagmiConfig } from "wagmi";
-import { alchemyProvider } from "wagmi/providers/alchemy";
+// import { alchemyProvider } from "wagmi/providers/alchemy";
 import { publicProvider } from "wagmi/providers/public";
+import { ContractProvider } from "./context/contracts";
 
 const { chains, provider } = configureChains(
   [chain.polygonMumbai, chain.polygon, chain.optimism, chain.arbitrum],
   [
-    alchemyProvider({ alchemyId: "yJKPlv6vVpN7wcG0-eeLfIw9jRS0CJ1p" }),
+    // alchemyProvider({ alchemyId: "yJKPlv6vVpN7wcG0-eeLfIw9jRS0CJ1p" }),
     publicProvider(),
   ]
 );
@@ -33,7 +34,9 @@ const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <WagmiConfig client={wagmiClient}>
     <RainbowKitProvider chains={chains}>
-      <App />
+      <ContractProvider>
+        <App />
+      </ContractProvider>
     </RainbowKitProvider>
   </WagmiConfig>
 );

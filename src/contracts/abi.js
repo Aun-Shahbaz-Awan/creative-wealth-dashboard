@@ -148,7 +148,7 @@ export const BUSDContractAbi = [
   },
 ];
 
-export const CrowdFundingContractAbi = [
+export const CFContractAbi = [
   {
     inputs: [
       { internalType: "contract IERC20", name: "_busd", type: "address" },
@@ -202,7 +202,14 @@ export const CrowdFundingContractAbi = [
   },
   {
     inputs: [],
-    name: "monthlyWidthdraw",
+    name: "maxInvestment",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "_amount", type: "uint256" }],
+    name: "monthlyWithdraw",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -215,7 +222,7 @@ export const CrowdFundingContractAbi = [
     type: "function",
   },
   {
-    inputs: [],
+    inputs: [{ internalType: "uint256", name: "_amount", type: "uint256" }],
     name: "reInvestMonthly",
     outputs: [],
     stateMutability: "nonpayable",
@@ -246,7 +253,16 @@ export const CrowdFundingContractAbi = [
     inputs: [
       { internalType: "contract IERC20", name: "_busd", type: "address" },
     ],
-    name: "updateBusd",
+    name: "updateBusdAddress",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "_maxInvestment", type: "uint256" },
+    ],
+    name: "updateMaxInvestment",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -266,6 +282,7 @@ export const CrowdFundingContractAbi = [
     name: "userInvestment",
     outputs: [
       { internalType: "uint256", name: "amount", type: "uint256" },
+      { internalType: "uint256", name: "withdrawable", type: "uint256" },
       { internalType: "uint256", name: "loss", type: "uint256" },
       { internalType: "uint256", name: "profit", type: "uint256" },
       { internalType: "uint256", name: "weekTimeperiod", type: "uint256" },
@@ -284,7 +301,7 @@ export const CrowdFundingContractAbi = [
   },
   {
     inputs: [],
-    name: "weeklyWidthdraw",
+    name: "weeklyWithdraw",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
