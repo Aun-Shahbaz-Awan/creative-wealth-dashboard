@@ -2,23 +2,29 @@
 import React, { useEffect } from "react";
 import { ethers } from "ethers";
 import { useAccount, useSigner } from "wagmi";
+import { UseContractContext } from "../context/contracts";
 import { BUSDContractAbi, CFContractAbi } from "../contracts/abi";
 import { BUSDContractAddress, CFContractAddress } from "../contracts/address";
 import {
   getBUSDBalance,
   getUserInvestment,
   investFunds,
-  reinvestFunds,
+  // reinvestFunds,
   withdrawFunds,
   weeklyWithdraw,
   getWithdrawStatus,
 } from "../services/user";
+import { getMinInvestment, getMaxInvestment } from "../services/admin";
 import { getTransactions } from "./../services/moralis";
 import { getUserAverageROIDB } from "../services/backend";
-import { Toaster } from "react-hot-toast";
+import { toast, Toaster } from "react-hot-toast";
+import axios from "axios";
 
 export default function UserDashboard() {
-  const [busdBalance, setBusdBalance] = React.useState("");
+  const context = UseContractContext();
+  const { data: signer } = useSigner();
+  const { address } = useAccount();
+  const [busdBalance, setBUSDBalance] = React.useState("");
   const [withdrawStatus, setWithdrawStatus] = React.useState(false);
   const [userInvestment, setUserInvestment] = React.useState([]);
   const [depositAmount, setDepositAmount] = React.useState(0);
@@ -26,8 +32,10 @@ export default function UserDashboard() {
   const [averageROI, setAverageROI] = React.useState(0);
   const [transactions, setTransactions] = React.useState({});
   const [refresh, setRefresh] = React.useState(true);
-  const { address } = useAccount();
-  const { data: signer } = useSigner();
+  const [minMaxInvestment, setMinMaxInvestment] = React.useState({
+    min: 0,
+    max: 0,
+  }); // Get Min/Max
 
   let BUSDContract,
     DEXContract = "";
@@ -41,15 +49,22 @@ export default function UserDashboard() {
     DEXContract = new ethers.Contract(CFContractAddress, CFContractAbi, signer);
   }
 
+  const fetchInvestments = async () => {
+    const _min = await getMinInvestment(context);
+    const _max = await getMaxInvestment(context);
+    setMinMaxInvestment({ min: _min, max: _max });
+  };
+  console.log("Min/Max:", minMaxInvestment);
+
   const fetchBUSDContractInfo = async () => {
     // User Investment ---------------------------------------------------------------------------------------------[ READ ]
     // _balance datatype is BigNumber
     const _balance = await getBUSDBalance(BUSDContract, address);
     if (parseFloat(ethers.utils.formatEther(_balance) > 0.1))
-      setBusdBalance(
+      setBUSDBalance(
         ethers.utils.formatEther(_balance).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
       );
-    else setBusdBalance(ethers.utils.formatEther(_balance));
+    else setBUSDBalance(ethers.utils.formatEther(_balance));
     // Withdraw Status ---------------------------------------------------------------------------------------------[ READ ]
     getWithdrawStatus(DEXContract).then((_response) =>
       setWithdrawStatus(_response)
@@ -64,6 +79,7 @@ export default function UserDashboard() {
       month: "short",
       day: "2-digit",
     });
+    fetchInvestments(); // Fetch min max investments
     setUserInvestment({
       amount: ethers.utils.formatEther(_user_investment.amount),
       withdrawable: ethers.utils.formatEther(_user_investment.withdrawable),
@@ -82,9 +98,7 @@ export default function UserDashboard() {
   console.log("Refresh Status:", refresh);
 
   // Get Transactions Data ---------------------------------------------------------------------------------------[3rd Party APIs]
-
   useEffect(() => {
-    console.log("LLLLLLOOOOSE:");
     getUserAverageROIDB().then((_average) => {
       console.log("Average ROID:", _average);
       setAverageROI(_average);
@@ -95,6 +109,7 @@ export default function UserDashboard() {
     });
   }, []);
 
+  // console.log("timeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", time);
   return (
     <div>
       <Toaster position="top-center" reverseOrder={false} />
@@ -105,11 +120,11 @@ export default function UserDashboard() {
           <div className="w-full rounded-md xl:col-span-2 border border-primary_gray p-3">
             <div className="container grid gap-3 mx-auto text-center grid-cols-1 xl:grid-cols-2">
               <div className="w-full text-left p-3 rounded-md bg-gray-900 text-white h-24">
-                <h3 className="text-primary_gray">Busd Balance</h3>
+                <h3 className="text-primary_gray">BUSD Balance</h3>
                 <h3>{busdBalance} BUSD</h3>
               </div>
               <div className="w-full text-left p-3 rounded-md bg-gray-900 text-white h-24">
-                <h3 className="text-primary_gray">Busd Invested</h3>
+                <h3 className="text-primary_gray">BUSD Invested</h3>
                 <h3>
                   {userInvestment?.invested_status === true
                     ? userInvestment?.amount
@@ -123,8 +138,41 @@ export default function UserDashboard() {
           <div className="w-full rounded-md xl:col-span-5 border border-primary_gray p-3">
             <div className="container grid gap-6 mx-auto text-center lg:grid-cols-1 xl:grid-cols-3">
               <div className="w-full rounded-md bg-primary_light shadow-lg h-24 text-left p-3 lg:col-span-2">
+                <div className="w-full flex justify-between px-3 pt-2">
+                  <div className="w-full text-left">
+                    <h3 className="text-white">This Week's ROI</h3>
+                    {withdrawStatus ? (
+                      userInvestment.profit ? (
+                        <span className="text-green-300">
+                          {(userInvestment.amount * userInvestment.profit) /
+                            100}{" "}
+                          BUSD
+                        </span>
+                      ) : (
+                        <span className="text-red-600">
+                          {(userInvestment.amount * userInvestment.loss) / 100}{" "}
+                          BUSD
+                        </span>
+                      )
+                    ) : (
+                      "Not Available Yet"
+                    )}
+                  </div>
+                  {/* <button
+                    type="button"
+                    onClick={() =>
+                      weeklyWithdraw(DEXContract, refresh, setRefresh)
+                    }
+                    className="w-2/3 h-10 px-0 text-sm font-semibold rounded-full border border-gray-100 hover:bg-primary text-white"
+                  >
+                    Claim ROI
+                  </button> */}
+                </div>
+              </div>
+              <div className="w-full rounded-md bg-primary_light drop-shadow-lg h-24 text-left p-3">
+                {/* <h3 className="text-white">Time Left To Withdraw</h3> */}
                 <h3 className="text-white drop-shadow-lg">
-                  ROI % - Average{" ("}
+                  Weekly Avg ROI{" ("}
                   {averageROI}%{")"}
                 </h3>
                 <h3>
@@ -141,11 +189,6 @@ export default function UserDashboard() {
                   )}
                 </h3>
               </div>
-              <div className="w-full rounded-md bg-primary_light drop-shadow-lg h-24 text-left p-3">
-                {/* <h3 className="text-white">Time Left To Withdraw</h3> */}
-                <h3 className="text-white">Expected Withdraw:</h3>
-                <h3>{userInvestment.timeperiod}</h3>
-              </div>
             </div>
           </div>
         </div>
@@ -155,7 +198,9 @@ export default function UserDashboard() {
           <div className="w-full rounded-md xl:col-span-2 bg-gray-900 text-white p-3 shadow-lg">
             {/* Deposit */}
             <div className="w-full text-left mb-2">
-              <h3 className="text-primary_gray">Minimum 50 BUSD</h3>
+              <h3 className="text-primary_gray">
+                Minimum {minMaxInvestment?.min} BUSD
+              </h3>
               {/* <h3>--:--</h3> */}
             </div>
             {/* Withdraw */}
@@ -169,17 +214,29 @@ export default function UserDashboard() {
               />
               <button
                 type="button"
-                onClick={() =>
-                  investFunds(
-                    BUSDContract,
-                    DEXContract,
-                    CFContractAddress,
-                    depositAmount,
-                    address,
-                    refresh,
-                    setRefresh
-                  )
-                }
+                onClick={() => {
+                  // let c = new Date();
+
+                  // c.getMinutes() >= time + 1
+                  axios
+                    .get(
+                      "https://app.creativewealth.finance/api/current/day",
+                      {}
+                    )
+                    .then((res) =>
+                      res.data == "Saturday" || res.data == "Sunday"
+                        ? investFunds(
+                            BUSDContract,
+                            DEXContract,
+                            CFContractAddress,
+                            depositAmount,
+                            address,
+                            refresh,
+                            setRefresh
+                          )
+                        : toast.error("Only Deposit on Weekends!")
+                    );
+                }}
                 disabled={
                   depositAmount >= 50 && depositAmount < 10000000 ? false : true
                 }
@@ -217,7 +274,7 @@ export default function UserDashboard() {
                 />
                 <div className="flex sm:flex-row gap-3 sm:gap-0 flex-col mt-3">
                   {/* Reinvest */}
-                  <button
+                  {/* <button
                     type="button"
                     disabled={withdrawAmount > 0 ? false : true}
                     onClick={() =>
@@ -233,7 +290,7 @@ export default function UserDashboard() {
                     }`}
                   >
                     Reinvest
-                  </button>
+                  </button> */}
                   {/* Rewithdraw ---- */}
                   <button
                     type="button"
@@ -310,7 +367,7 @@ export default function UserDashboard() {
                       <th className="px-5 py-3 border-b-2 border-gray-200 bg-primary_light text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         To
                       </th>
-                      <th className="px-5 py-3 border-b-2 border-gray-200 bg-primary_light text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      <th className="px-5 py-3 min-w-[200px] border-b-2 border-gray-200 bg-primary_light text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         Date
                       </th>
                     </tr>

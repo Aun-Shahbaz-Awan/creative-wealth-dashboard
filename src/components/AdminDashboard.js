@@ -10,7 +10,13 @@ import {
   ownerWithdrawFunds,
   ownerUpdateROI,
   getWithdrawalStatus,
+  getDepositStatus,
   ownerUpdateWithdrawalStatus,
+  ownerUpdateDepositStatus,
+  getMinInvestment,
+  getMaxInvestment,
+  ownerUpdateMinInvestment,
+  ownerUpdateMaxInvestment,
 } from "../services/admin";
 import { getAllInvestmentDB, getTotalInvestmentDB } from "../services/backend";
 import { getTransactions } from "./../services/moralis";
@@ -28,14 +34,31 @@ function AdminDashboard() {
   const [withdrawAddress, setWithdrawAddress] = useState("");
   const [roi, setRoi] = useState({ percentage: "", profitStatus: true }); //
   const [withdrawalStatus, setWithdrawalStatus] = useState(false);
+  const [depositStatus, setDepositStatus] = useState(false);
   const [allInvestments, setAllInvestments] = useState({});
   const [showGraph, setShowGraph] = useState(false); // To resolve rander issue
   const [transactions, setTransactions] = React.useState({}); // Past Transactions
   const [totalInvestment, setTotalInvestment] = React.useState(0); // Past Transactions
+  const [minMaxInvestment, setMinMaxInvestment] = React.useState({
+    min: 0,
+    max: 0,
+  }); // Past Transactions
+  const [updateMinMaxInvestment, setUpdateMinMaxInvestment] = React.useState({
+    min: 0,
+    max: 0,
+  }); // Update Transactions
   const [refresh, setRefresh] = React.useState(true);
+
+  const fetchInvestments = async () => {
+    const _min = await getMinInvestment(context);
+    const _max = await getMaxInvestment(context);
+    setMinMaxInvestment({ min: _min, max: _max });
+  };
+  console.log("Min/Max:", minMaxInvestment);
 
   useEffect(() => {
     if (signer) {
+      console.log("REFRESH:");
       getContractBalance(context).then((balance) =>
         setContractBalance(balance)
       );
@@ -43,6 +66,8 @@ function AdminDashboard() {
       getWithdrawalStatus(context).then((status) =>
         setWithdrawalStatus(status)
       );
+      getDepositStatus(context).then((status) => setDepositStatus(status));
+      fetchInvestments();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signer, refresh]);
@@ -88,20 +113,103 @@ function AdminDashboard() {
   return (
     <section className="p-6">
       <Toaster position="top-center" reverseOrder={false} />
+      {/* Top Row --------------------------------------------------------------------------------------------------- */}
       <div className="container grid gap-6 mx-auto text-center lg:grid-cols-2 xl:grid-cols-7">
         {/* COLUMN 1 - (border border-primary_gray p-3)*/}
         <div className="w-full rounded-md xl:col-span-2">
-          {/* COL 1 SUB 1 */}
           <div className="container grid gap-3 mx-auto text-center grid-cols-1 xl:grid-cols-2 mb-3">
             <div className="w-full text-left p-3 rounded-md bg-gray-900 text-white h-24">
               <h3 className="text-primary_gray">Total Trade</h3>
-              <h3>{totalInvestment} BUSD</h3>
+              <h3>{totalInvestment}0 BUSD</h3>
             </div>
             <div className="w-full text-left p-3 rounded-md bg-gray-900 text-white h-24">
               <h3 className="text-primary_gray">Wallet Balance</h3>
-              <h3>{ownerBalance} BUSD</h3>
+              <h3>{ownerBalance}0 BUSD</h3>
             </div>
           </div>
+        </div>
+        {/* COLUMN 2 - Update Min/Max ------------------------------------------------------------------------------------ */}
+        <div className="w-full rounded-md xl:col-span-5 ">
+          <div className="container grid gap-3 mx-auto text-center grid-cols-1 xl:grid-cols-2 mb-3">
+            {/* Min -------------------------------------- */}
+            <div className="w-full text-left p-3 rounded-md bg-gray-900 text-white h-24">
+              <h3 className="text-primary_gray">
+                Current Min Investment:{" "}
+                <span className="text-white">{minMaxInvestment?.min} BUSD</span>
+              </h3>
+              <div className="flex justify-between w-full mt-2">
+                <input
+                  id="name"
+                  type="number"
+                  placeholder="Min Investment"
+                  onChange={(e) => {
+                    setUpdateMinMaxInvestment({
+                      ...updateMinMaxInvestment,
+                      min: e.target.value,
+                    });
+                  }}
+                  className="w-2/3 mr-2 pl-4 rounded-sm text-primary border border-primary focus:ring focus:ring-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    ownerUpdateMinInvestment(
+                      context,
+                      updateMinMaxInvestment.min,
+                      refresh,
+                      setRefresh
+                    )
+                  }
+                  disabled={updateMinMaxInvestment.min === "" ? true : false}
+                  className="w-1/3 py-2 font-semibold rounded-sm bg-primary text-white disabled:bg-primary_gray"
+                >
+                  Update
+                </button>
+              </div>
+            </div>
+            {/* Max -------------------------------------- */}
+            <div className="w-full text-left p-3 rounded-md bg-gray-900 text-white h-24">
+              <h3 className="text-primary_gray">
+                Current Max Investment:{" "}
+                <span className="text-white">{minMaxInvestment?.max} BUSD</span>
+              </h3>
+              <div className="flex justify-between w-full mt-2">
+                <input
+                  id="name"
+                  type="number"
+                  placeholder="Max Investment"
+                  onChange={(e) => {
+                    setUpdateMinMaxInvestment({
+                      ...updateMinMaxInvestment,
+                      max: e.target.value,
+                    });
+                  }}
+                  className="w-2/3 mr-2 pl-4 rounded-sm text-primary border border-primary focus:ring focus:ring-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    ownerUpdateMaxInvestment(
+                      context,
+                      updateMinMaxInvestment.max,
+                      refresh,
+                      setRefresh
+                    )
+                  }
+                  disabled={updateMinMaxInvestment.max === "" ? true : false}
+                  className="w-1/3 py-2 font-semibold rounded-sm bg-primary text-white disabled:bg-primary_gray"
+                >
+                  Update
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* 2nd Row --------------------------------------------------------------------------------------------------- */}
+      <div className="container grid gap-6 mx-auto text-center lg:grid-cols-2 xl:grid-cols-7">
+        {/* COLUMN 1 - (border border-primary_gray p-3)*/}
+        <div className="w-full rounded-md xl:col-span-2">
           {/* COL 1 SUB 2 */}
           <div className="w-full rounded-md xl:col-span-2 bg-gray-900 text-white p-3">
             {/* ROI ------------------------------------------------------------------------------------ COL1-MOD1 */}
@@ -153,6 +261,36 @@ function AdminDashboard() {
             </div>
             <hr className="my-5" />
             {/* Upadte Withdrawal Status --------------------------------------------------------------- COL1-MOD2 */}
+            {/* deposit status */}
+            <div className="w-full flex justify-between items-center mb-4">
+              <h3 className="text-primary_gray">Update Deposit Status</h3>
+              <div className="flex items-center">
+                <p className="mr-2">{depositStatus ? "NO" : "OFF"}</p>
+                <Switch
+                  checked={depositStatus}
+                  onChange={() =>
+                    ownerUpdateDepositStatus(
+                      context,
+                      !depositStatus,
+                      refresh,
+                      setRefresh
+                    )
+                  }
+                  className={`${depositStatus ? "bg-green-300" : "bg-red-300"}
+          relative inline-flex h-[22px] w-[40px] shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2  focus-visible:ring-white focus-visible:ring-opacity-75`}
+                >
+                  <span className="sr-only">Use setting</span>
+                  <span
+                    aria-hidden="true"
+                    className={`${
+                      depositStatus ? "translate-x-4" : "translate-x-0"
+                    }
+            pointer-events-none inline-block h-[18px] w-[20px] transform rounded-full bg-primary shadow-md ring-0 transition duration-200 ease-in-out`}
+                  />
+                </Switch>
+              </div>
+            </div>
+            {/* withdraw status */}
             <div className="w-full flex justify-between items-center mb-2">
               <h3 className="text-primary_gray">Update Withdrawal Status</h3>
               <div className="flex items-center">
@@ -214,20 +352,23 @@ function AdminDashboard() {
             </div>
             <div>
               <div className="w-full">
-                <input
-                  id="name"
-                  type="number"
-                  placeholder="Enter Amount"
-                  onChange={(e) => setWithdrawAmount(e.target.value)}
-                  className="w-full mb-3 mr-2 pl-4 py-2 rounded-sm border border-primary text-primary focus:ring focus:ring-primary"
-                />
-                <input
-                  id="name"
-                  type="text"
-                  placeholder="Enter Wallet Address"
-                  onChange={(e) => setWithdrawAddress(e.target.value)}
-                  className="w-full mr-2 pl-4 py-2 rounded-sm border border-primary text-primary focus:ring focus:ring-primary"
-                />
+                <div className="flex md:flex-row flex-col">
+                  <input
+                    id="name"
+                    type="number"
+                    placeholder="Enter Amount"
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                    className="md:w-1/2 w-full mr-2 mb-3 md:mb-0 pl-4 py-2 rounded-sm border border-primary text-primary focus:ring focus:ring-primary"
+                  />
+                  <input
+                    id="name"
+                    type="text"
+                    placeholder="Enter Wallet Address"
+                    onChange={(e) => setWithdrawAddress(e.target.value)}
+                    className="md:w-1/2 w-full pl-4 py-2 rounded-sm border border-primary text-primary focus:ring focus:ring-primary"
+                  />
+                </div>
+
                 <div className="flex sm:flex-row gap-3 sm:gap-0 flex-col mt-3">
                   <button
                     type="button"
@@ -265,9 +406,9 @@ function AdminDashboard() {
               Recent Transactions
             </h5>
 
-            <div class="overflow-x-auto w-full shadow-md sm:rounded-lg">
-              <div class="inline-block max-w-xs mx-auto sm:min-w-full overflow-x-auto align-middle">
-                <div class="overflow-hidden ">
+            <div className="overflow-x-auto w-full shadow-md sm:rounded-lg">
+              <div className="inline-block max-w-xs mx-auto sm:min-w-full overflow-x-auto align-middle">
+                <div className=" ">
                   <table className="min-w-full divide-y divide-gray-200 table-fixed">
                     <thead>
                       <tr>
@@ -283,7 +424,7 @@ function AdminDashboard() {
                         <th className="px-5 py-3 border-b-2 border-gray-200 bg-primary_light text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                           To
                         </th>
-                        <th className="px-5 py-3 border-b-2 border-gray-200 bg-primary_light text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        <th className="px-5 min-w-[200px] py-3 border-b-2 border-gray-200 bg-primary_light text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                           Date
                         </th>
                       </tr>

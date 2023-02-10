@@ -57,7 +57,7 @@ export const postUserROIDB = async (status, percentage) => {
 // GET Average ROI ----------------------------------------------------------------- [ POST ]
 export const getUserAverageROIDB = async () => {
   const roi = axios
-    .get(`${process.env.REACT_APP_BASE_URL}/average/roi`, {
+    .get(`${process.env.REACT_APP_BASE_URL}/roi/average`, {
       headers: { Accept: "*/*", "Access-Control-Allow-Origin": "*" },
     })
     .then((response) => {

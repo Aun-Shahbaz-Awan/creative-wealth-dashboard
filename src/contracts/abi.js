@@ -152,7 +152,6 @@ export const CFContractAbi = [
   {
     inputs: [
       { internalType: "contract IERC20", name: "_busd", type: "address" },
-      { internalType: "string", name: "_password", type: "string" },
     ],
     stateMutability: "nonpayable",
     type: "constructor",
@@ -177,9 +176,26 @@ export const CFContractAbi = [
     type: "event",
   },
   {
+    inputs: [
+      { internalType: "address", name: "_addr", type: "address" },
+      { internalType: "bool", name: "_blacklist", type: "bool" },
+    ],
+    name: "blacklistAddress",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
     inputs: [],
     name: "busd",
     outputs: [{ internalType: "contract IERC20", name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "depositOff",
+    outputs: [{ internalType: "bool", name: "", type: "bool" }],
     stateMutability: "view",
     type: "function",
   },
@@ -201,8 +217,29 @@ export const CFContractAbi = [
     type: "function",
   },
   {
+    inputs: [{ internalType: "address", name: "", type: "address" }],
+    name: "isBlacklisted",
+    outputs: [{ internalType: "bool", name: "", type: "bool" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "", type: "address" }],
+    name: "isWhitelisted",
+    outputs: [{ internalType: "bool", name: "", type: "bool" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [],
     name: "maxInvestment",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "minInvestment",
     outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
@@ -222,15 +259,15 @@ export const CFContractAbi = [
     type: "function",
   },
   {
-    inputs: [{ internalType: "uint256", name: "_amount", type: "uint256" }],
-    name: "reInvestMonthly",
+    inputs: [],
+    name: "renounceOwnership",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
   },
   {
-    inputs: [],
-    name: "renounceOwnership",
+    inputs: [{ internalType: "bool", name: "_val", type: "bool" }],
+    name: "toggleDepositOff",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
@@ -269,6 +306,22 @@ export const CFContractAbi = [
   },
   {
     inputs: [
+      { internalType: "uint256", name: "_minInvestment", type: "uint256" },
+    ],
+    name: "updateMinInvestment",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "string", name: "_password", type: "string" }],
+    name: "updatePassword",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
       { internalType: "uint256", name: "_per", type: "uint256" },
       { internalType: "bool", name: "pl", type: "bool" },
     ],
@@ -293,15 +346,18 @@ export const CFContractAbi = [
     type: "function",
   },
   {
-    inputs: [{ internalType: "address", name: "", type: "address" }],
-    name: "weekWidthdraw",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
+    inputs: [],
+    name: "weeklyWithdraw",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
-    inputs: [],
-    name: "weeklyWithdraw",
+    inputs: [
+      { internalType: "address", name: "_addr", type: "address" },
+      { internalType: "bool", name: "_whitelist", type: "bool" },
+    ],
+    name: "whitelistAddress",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",

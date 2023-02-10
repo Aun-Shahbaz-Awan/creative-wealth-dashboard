@@ -33,6 +33,29 @@ export const getWithdrawalStatus = async (context) => {
   return await context?.contracts?.tradeContract?.withdrawl();
 };
 
+// Get Deposit Status -------------------------------------------------- [ READ ]
+export const getDepositStatus = async (context) => {
+  return await context?.contracts?.tradeContract?.depositOff();
+};
+
+// Get Minimum Investment -------------------------------------------------- [ READ ]
+export const getMinInvestment = async (context) => {
+  return await context?.contracts?.tradeContract
+    ?.minInvestment()
+    .then((_balance) => {
+      return ethers.utils.formatEther(_balance);
+    });
+};
+
+// Get Maximum Investment -------------------------------------------------- [ READ ]
+export const getMaxInvestment = async (context) => {
+  return await context?.contracts?.tradeContract
+    ?.maxInvestment()
+    .then((_balance) => {
+      return ethers.utils.formatEther(_balance);
+    });
+};
+
 // Invest Funds by Owner --------------------------------------------------- [ CALL ]
 export const ownerAddFunds = async (context, _amount, refresh, setRefresh) => {
   await context?.contracts?.tokenContract
@@ -121,7 +144,6 @@ export const ownerUpdateROI = async (context, ROI, refresh, setRefresh) => {
           console.log("Withdraw Funds Res:", _responce);
           setRefresh(!refresh);
           postUserROIDB(ROI.profitStatus, parseInt(ROI.percentage));
-          return true;
         }),
         {
           loading: "Updating in Progress...",
@@ -137,7 +159,6 @@ export const ownerUpdateROI = async (context, ROI, refresh, setRefresh) => {
       else {
         toast.error("Something went Wrong!");
       }
-      return true;
     });
 };
 
@@ -155,10 +176,107 @@ export const ownerUpdateWithdrawalStatus = async (
         _responce.wait((tx) => {
           setRefresh(!refresh);
           console.log("Withdrawal Status:", tx);
-          return true;
         }),
         {
           loading: "Updating in Progress...",
+          success: "Successfully Done!",
+          error: "Something went Wrong!",
+        }
+      );
+    })
+    .catch((error) => {
+      console.log("Reinvest Error: ", error?.error?.data);
+      if (error?.error?.data?.code === 3)
+        toast.error(error?.error?.data?.message);
+      else {
+        toast.error("Something went Wrong!");
+      }
+    });
+};
+
+// Owner Update Withdrawal Status --------------------------------------- [ CALL ]
+export const ownerUpdateDepositStatus = async (
+  context,
+  status,
+  refresh,
+  setRefresh
+) => {
+  await context?.contracts?.tradeContract
+    ?.toggleDepositOff(status)
+    .then((_responce) => {
+      toast.promise(
+        _responce.wait((tx) => {
+          setRefresh(!refresh);
+        }),
+        {
+          loading: "Updating in Progress...",
+          success: "Successfully Done!",
+          error: "Something went Wrong!",
+        }
+      );
+    })
+    .catch((error) => {
+      console.log("Reinvest Error: ", error?.error?.data);
+      if (error?.error?.data?.code === 3)
+        toast.error(error?.error?.data?.message);
+      else {
+        toast.error("Something went Wrong!");
+      }
+    });
+};
+
+// Owner Update Minimum Investment --------------------------------------- [ CALL ]
+export const ownerUpdateMinInvestment = async (
+  context,
+  _amount,
+  refresh,
+  setRefresh
+) => {
+  await context?.contracts?.tradeContract
+    ?.updateMinInvestment(ethers.utils.parseEther(_amount.toString()))
+    .then((_responce) => {
+      toast.promise(
+        _responce.wait((tx) => {
+          setRefresh(!refresh);
+          console.log("Withdrawal Status:", tx);
+          return true;
+        }),
+        {
+          loading: "Updating Investment in Progress...",
+          success: "Successfully Done!",
+          error: "Something went Wrong!",
+        }
+      );
+    })
+    .catch((error) => {
+      console.log("Reinvest Error: ", error?.error?.data);
+      if (error?.error?.data?.code === 3)
+        toast.error(error?.error?.data?.message);
+      else {
+        toast.error("Something went Wrong!");
+      }
+      return true;
+    });
+};
+
+// Owner Update Maximum Investment --------------------------------------- [ CALL ]
+export const ownerUpdateMaxInvestment = async (
+  context,
+  _amount,
+  refresh,
+  setRefresh
+) => {
+  await context?.contracts?.tradeContract
+    ?.updateMaxInvestment(ethers.utils.parseEther(_amount.toString()))
+    .then((_responce) => {
+      toast.promise(
+        _responce.wait((tx) => {
+          setRefresh(!refresh);
+          console.log("Withdrawal Status:", tx);
+          return true;
+        }),
+        {
+          loading: "Updating Investment in Progress...",
           success: "Successfully Done!",
           error: "Something went Wrong!",
         }
