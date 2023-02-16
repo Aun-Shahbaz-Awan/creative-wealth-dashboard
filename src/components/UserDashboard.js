@@ -92,13 +92,14 @@ export default function UserDashboard() {
       setDepositStatus(_response)
     );
     // Withdraw Status ---------------------------------------------------------------------------------------------[ READ ]
-    getROI(DEXContract).then((_roi) =>
+    getROI(DEXContract).then((_roi) => {
+      // console.log("ROI_____:", _roi);
       setWeeklyROI({
         percentage: _roi?.percentage / 100,
         profitStatus: _roi?.profitStatus,
         time: _roi?.time,
-      })
-    );
+      });
+    });
     // User Investment ---------------------------------------------------------------------------------------------[ READ ]
     // _user_investment array of datatype is BigNumber
     const _user_investment = await getUserInvestment(DEXContract, address);
@@ -232,11 +233,11 @@ export default function UserDashboard() {
                   <h3 className="text-white">This Week's ROI</h3>
                   {weeklyROI?.profitStatus ? (
                     <span className="text-green-800">
-                      {weeklyROI.percentage.toFixed(2)}%
+                      {weeklyROI?.percentage.toFixed(2)}%
                     </span>
                   ) : (
                     <span className="text-red-600">
-                      {weeklyROI.percentage.toFixed(2)}%
+                      {weeklyROI?.percentage.toFixed(2)}%
                     </span>
                   )}
                 </div>

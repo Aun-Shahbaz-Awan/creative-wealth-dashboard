@@ -23,10 +23,11 @@ export const getUserInvestment = async (contract, u_address) => {
 // Get User's BUSD Token  Balance --------------------------------------------------------------------- [ READ ]
 export const getROI = async (contract) => {
   return await contract?.roi().then((roi) => {
+    // console.log("Internal ROI____________:", roi);
     return {
-      percentage: parseInt(roi?.per._hex, 10),
+      percentage: parseInt(roi?.per._hex, 16),
       profitStatus: roi?.pl,
-      time: parseInt(roi?.time._hex, 10),
+      time: parseInt(roi?.time._hex, 16),
     };
   });
 };
