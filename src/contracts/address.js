@@ -1,7 +1,5 @@
 export const BUSDContractAddress = "0xf07795Ee75f76B3bCdBeA3997de3453cF541E66f";
-export const CFContractAddress = "0xAeCAeba91D2698476Ee25714A5581C7436231d42";
-// export const CFContractAddress = "0xEe5702d729Df14dC1096E073475ba9aa554Deb0A";
-// export const CFContractAddress = "0x92597d37298D4B8337EBC8c38BbdD5164373e66C";
-// export const CFContractAddress = "0x884a4b1c644E20d73d8cCa003f9A0dA44416F15c";
-// export const CFContractAddress = "0xc328397649485eA51dA585A3cC5f0Dfd0FFE92a9";
-// export const CFContractAddress = "0x198BD028DDd6FDd229d4eee3A05A7Fdccfc47670";
+export const CFContractAddress = "0x328523C4Dbe29f751acCa9CdE6F98420037081FD";
+// export const CFContractAddress = "0xBdD185d7a6497DEaE927b203175ab628A3aB1AD4";
+// export const CFContractAddress = "0x04B2e115cCbeBfa4468B630B477c4f3997D4091a";
+// export const CFContractAddress = "0xBd6dDF9b249D916bEf6DC94f663a3879a44EB433";

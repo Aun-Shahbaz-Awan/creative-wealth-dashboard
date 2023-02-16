@@ -8,33 +8,47 @@ import { BUSDContractAddress, CFContractAddress } from "../contracts/address";
 import {
   getBUSDBalance,
   getUserInvestment,
+  getROI,
   investFunds,
-  // reinvestFunds,
   withdrawFunds,
   weeklyWithdraw,
   getWithdrawStatus,
+  getDepositStatus,
 } from "../services/user";
-import { getMinInvestment, getMaxInvestment } from "../services/admin";
-import { getTransactions } from "./../services/moralis";
+import {
+  getMinInvestment,
+  getMaxInvestment,
+  getMaxUserInvestment,
+} from "../services/admin";
+import { getUserTransactions } from "./../services/moralis";
 import { getUserAverageROIDB } from "../services/backend";
 import { toast, Toaster } from "react-hot-toast";
 import axios from "axios";
+import Countdown from "react-countdown";
 
 export default function UserDashboard() {
   const context = UseContractContext();
   const { data: signer } = useSigner();
   const { address } = useAccount();
   const [busdBalance, setBUSDBalance] = React.useState("");
+  const [depositStatus, setDepositStatus] = React.useState(false);
   const [withdrawStatus, setWithdrawStatus] = React.useState(false);
   const [userInvestment, setUserInvestment] = React.useState([]);
   const [depositAmount, setDepositAmount] = React.useState(0);
   const [withdrawAmount, setWithdrawAmount] = React.useState(0);
   const [averageROI, setAverageROI] = React.useState(0);
+  const [weeklyROI, setWeeklyROI] = React.useState({
+    percentage: 0,
+    profitStatus: 0,
+    time: 0,
+  });
   const [transactions, setTransactions] = React.useState({});
   const [refresh, setRefresh] = React.useState(true);
+  const [time, setTime] = React.useState(0);
   const [minMaxInvestment, setMinMaxInvestment] = React.useState({
-    min: 0,
-    max: 0,
+    minInvestment: 0,
+    maxInvestment: 0,
+    maxUserInvestment: 0,
   }); // Get Min/Max
 
   let BUSDContract,
@@ -52,9 +66,14 @@ export default function UserDashboard() {
   const fetchInvestments = async () => {
     const _min = await getMinInvestment(context);
     const _max = await getMaxInvestment(context);
-    setMinMaxInvestment({ min: _min, max: _max });
+    const _user = await getMaxUserInvestment(context);
+    setMinMaxInvestment({
+      minInvestment: parseInt(_min),
+      maxInvestment: parseInt(_max),
+      maxUserInvestment: parseInt(_user),
+    });
   };
-  console.log("Min/Max:", minMaxInvestment);
+  // console.log("Min/Max:", minMaxInvestment);
 
   const fetchBUSDContractInfo = async () => {
     // User Investment ---------------------------------------------------------------------------------------------[ READ ]
@@ -69,23 +88,65 @@ export default function UserDashboard() {
     getWithdrawStatus(DEXContract).then((_response) =>
       setWithdrawStatus(_response)
     );
+    getDepositStatus(DEXContract).then((_response) =>
+      setDepositStatus(_response)
+    );
+    // Withdraw Status ---------------------------------------------------------------------------------------------[ READ ]
+    getROI(DEXContract).then((_roi) =>
+      setWeeklyROI({
+        percentage: _roi?.percentage / 100,
+        profitStatus: _roi?.profitStatus,
+        time: _roi?.time,
+      })
+    );
     // User Investment ---------------------------------------------------------------------------------------------[ READ ]
     // _user_investment array of datatype is BigNumber
     const _user_investment = await getUserInvestment(DEXContract, address);
+
     const _withdraw_date = new Date(
-      parseInt(_user_investment.timeperiod?._hex, 16) * 1000 + 2592000000
+      parseInt(_user_investment.timeperiod?._hex, 16) * 1000
     ).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
       day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
     });
+
+    // console.log(
+    //   "Remaining Time",
+    //   Date.now() + 2592000 * 1000,
+    //   ethers.BigNumber.from(_user_investment.timeperiod).toString() * 1000
+    // );
+    setTime(
+      Date.now() +
+        2592000 * 1000 -
+        ethers.BigNumber.from(_user_investment.timeperiod).toString() * 1000
+    );
+
+    if (
+      ethers.BigNumber.from(_user_investment.timeperiod).toString() * 1000 <
+      Date.now() + 60 * 5 * 1000
+    ) {
+      setTime(
+        ethers.BigNumber.from(_user_investment.timeperiod).toString() * 1000 -
+          Date.now() +
+          60 * 5 * 1000
+      );
+    } else {
+      setTime(
+        Date.now() +
+          60 * 5 * 1000 -
+          ethers.BigNumber.from(_user_investment.timeperiod).toString() * 1000
+      );
+    }
+
     fetchInvestments(); // Fetch min max investments
     setUserInvestment({
       amount: ethers.utils.formatEther(_user_investment.amount),
       withdrawable: ethers.utils.formatEther(_user_investment.withdrawable),
       loss: parseInt(_user_investment.loss?._hex, 16),
       profit: parseInt(_user_investment.profit?._hex, 16),
-      weekTimeperiod: parseInt(_user_investment.timeperiod?._hex, 16) * 1000,
+      weekTimeperiod: parseInt(_user_investment.timeperiod?._hex, 16) / 1000,
       timeperiod: _withdraw_date,
       invested_status: _user_investment.invested,
     });
@@ -95,21 +156,50 @@ export default function UserDashboard() {
     if (signer) fetchBUSDContractInfo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signer, refresh]);
-  console.log("Refresh Status:", refresh);
+  // console.log("Refresh Status:", refresh);
 
   // Get Transactions Data ---------------------------------------------------------------------------------------[3rd Party APIs]
   useEffect(() => {
     getUserAverageROIDB().then((_average) => {
-      console.log("Average ROID:", _average);
+      // console.log("Average ROID :", _average);
       setAverageROI(_average);
     });
-    getTransactions(null).then((_transactions) => {
+    getUserTransactions(address, null).then((_transactions) => {
       setTransactions(_transactions);
-      console.log("Transactions:", transactions);
+      // console.log("Transactions:", transactions);
     });
-  }, []);
+  }, [address]);
 
   // console.log("timeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", time);
+
+  // Renderer callback with condition
+  const liveWithdrawTime = ({ days, hours, minutes, seconds, completed }) => {
+    if (completed) {
+      // Render a complete state
+      return (
+        <span className="text-green-300">
+          {userInvestment?.withdrawable
+            ? " " + parseInt(userInvestment?.withdrawable).toFixed(2) + " USDT"
+            : ""}
+        </span>
+      );
+    } else {
+      // Render a countdown
+      return (
+        <span>
+          &nbsp;In:&nbsp;
+          {days
+            ? `${days} Days : ${hours} Hrs: ${minutes} Mins : ${seconds} Sec`
+            : hours
+            ? `${hours} Hrs : ${minutes} Mins : ${seconds} Sec`
+            : minutes
+            ? `${minutes} Mins : ${seconds} Sec`
+            : seconds + " Sec"}
+        </span>
+      );
+    }
+  };
+
   return (
     <div>
       <Toaster position="top-center" reverseOrder={false} />
@@ -120,16 +210,16 @@ export default function UserDashboard() {
           <div className="w-full rounded-md xl:col-span-2 border border-primary_gray p-3">
             <div className="container grid gap-3 mx-auto text-center grid-cols-1 xl:grid-cols-2">
               <div className="w-full text-left p-3 rounded-md bg-gray-900 text-white h-24">
-                <h3 className="text-primary_gray">BUSD Balance</h3>
-                <h3>{busdBalance} BUSD</h3>
+                <h3 className="text-primary_gray">USDT Balance</h3>
+                <h3>{busdBalance} USDT</h3>
               </div>
               <div className="w-full text-left p-3 rounded-md bg-gray-900 text-white h-24">
-                <h3 className="text-primary_gray">BUSD Invested</h3>
+                <h3 className="text-primary_gray">USDT Invested</h3>
                 <h3>
                   {userInvestment?.invested_status === true
                     ? userInvestment?.amount
                     : ""}
-                  {userInvestment?.invested_status === true ? " BUSD" : "--:--"}
+                  {userInvestment?.invested_status === true ? " USDT" : "--:--"}
                 </h3>
               </div>
             </div>
@@ -137,57 +227,25 @@ export default function UserDashboard() {
           {/* ROI / Date Status */}
           <div className="w-full rounded-md xl:col-span-5 border border-primary_gray p-3">
             <div className="container grid gap-6 mx-auto text-center lg:grid-cols-1 xl:grid-cols-3">
-              <div className="w-full rounded-md bg-primary_light shadow-lg h-24 text-left p-3 lg:col-span-2">
-                <div className="w-full flex justify-between px-3 pt-2">
-                  <div className="w-full text-left">
-                    <h3 className="text-white">This Week's ROI</h3>
-                    {withdrawStatus ? (
-                      userInvestment.profit ? (
-                        <span className="text-green-300">
-                          {(userInvestment.amount * userInvestment.profit) /
-                            100}{" "}
-                          BUSD
-                        </span>
-                      ) : (
-                        <span className="text-red-600">
-                          {(userInvestment.amount * userInvestment.loss) / 100}{" "}
-                          BUSD
-                        </span>
-                      )
-                    ) : (
-                      "Not Available Yet"
-                    )}
-                  </div>
-                  {/* <button
-                    type="button"
-                    onClick={() =>
-                      weeklyWithdraw(DEXContract, refresh, setRefresh)
-                    }
-                    className="w-2/3 h-10 px-0 text-sm font-semibold rounded-full border border-gray-100 hover:bg-primary text-white"
-                  >
-                    Claim ROI
-                  </button> */}
-                </div>
-              </div>
-              <div className="w-full rounded-md bg-primary_light drop-shadow-lg h-24 text-left p-3">
-                {/* <h3 className="text-white">Time Left To Withdraw</h3> */}
-                <h3 className="text-white drop-shadow-lg">
-                  Weekly Avg ROI{" ("}
-                  {averageROI}%{")"}
-                </h3>
-                <h3>
-                  {userInvestment.profit > 0 ? (
+              <div className="w-full rounded-md bg-primary_light drop-shadow-lg text-left p-3 pl-6 h-24 lg:col-span-2">
+                <div>
+                  <h3 className="text-white">This Week's ROI</h3>
+                  {weeklyROI?.profitStatus ? (
                     <span className="text-green-800">
-                      {userInvestment.profit}%
-                    </span>
-                  ) : userInvestment.loss > 0 ? (
-                    <span className="text-red-600">
-                      -{userInvestment.profit}%
+                      {weeklyROI.percentage.toFixed(2)}%
                     </span>
                   ) : (
-                    "00.00"
+                    <span className="text-red-600">
+                      {weeklyROI.percentage.toFixed(2)}%
+                    </span>
                   )}
-                </h3>
+                </div>
+              </div>
+              <div className="w-full rounded-md bg-primary_light drop-shadow-lg text-left p-3 pl-6 h-24">
+                <div>
+                  <h3 className="text-white drop-shadow-lg">Weekly Avg ROI:</h3>
+                  <h3 className="text-pr">{averageROI?.toFixed(2)}%</h3>
+                </div>
               </div>
             </div>
           </div>
@@ -199,11 +257,10 @@ export default function UserDashboard() {
             {/* Deposit */}
             <div className="w-full text-left mb-2">
               <h3 className="text-primary_gray">
-                Minimum {minMaxInvestment?.min} BUSD
+                Min. {minMaxInvestment?.minInvestment?.toFixed(2)} USDT Max.{" "}
+                {minMaxInvestment?.maxUserInvestment?.toFixed(2)} USDT
               </h3>
-              {/* <h3>--:--</h3> */}
             </div>
-            {/* Withdraw */}
             <div className="flex justify-between w-full">
               <input
                 id="name"
@@ -215,16 +272,14 @@ export default function UserDashboard() {
               <button
                 type="button"
                 onClick={() => {
-                  // let c = new Date();
-
-                  // c.getMinutes() >= time + 1
                   axios
                     .get(
                       "https://app.creativewealth.finance/api/current/day",
                       {}
                     )
                     .then((res) =>
-                      res.data == "Saturday" || res.data == "Sunday"
+                      // res.data == "Saturday" || res.data == "Sunday"
+                      true
                         ? investFunds(
                             BUSDContract,
                             DEXContract,
@@ -238,10 +293,14 @@ export default function UserDashboard() {
                     );
                 }}
                 disabled={
-                  depositAmount >= 50 && depositAmount < 10000000 ? false : true
+                  depositAmount >= minMaxInvestment?.minInvestment &&
+                  depositAmount <= minMaxInvestment?.maxUserInvestment
+                    ? false
+                    : true
                 }
                 className={`w-1/3 py-2 font-semibold rounded-sm text-white ${
-                  depositAmount >= 50 && depositAmount < 10000000
+                  depositAmount >= minMaxInvestment?.minInvestment &&
+                  depositAmount <= minMaxInvestment?.maxUserInvestment
                     ? "bg-primary"
                     : "bg-slate-600"
                 }`}
@@ -249,18 +308,26 @@ export default function UserDashboard() {
                 Deposit
               </button>
             </div>
+            <p className="text-xs text-red-300 mt-2 text-left">
+              {depositStatus ? "" : "Deposits Are Currently Off!"}
+            </p>
             <hr className="my-5" />
             {/* ROI */}
             <div>
               {/* Deposit */}
               <div className="w-full text-left mb-2">
-                <h3 className="text-primary_gray">
-                  Balance Available on {userInvestment.timeperiod}{" "}
-                </h3>
-                <h3>
-                  {userInvestment?.withdrawable
-                    ? userInvestment?.withdrawable + " BUSD"
-                    : "--:--"}
+                <h3 className="text-primary_gray mb-4">
+                  {userInvestment.invested_status ? (
+                    <span>
+                      Balance Available
+                      <Countdown
+                        date={Date.now() + time}
+                        renderer={liveWithdrawTime}
+                      />
+                    </span>
+                  ) : (
+                    "Please Invest First"
+                  )}
                 </h3>
               </div>
               {/* Withdraw */}
@@ -299,6 +366,7 @@ export default function UserDashboard() {
                       withdrawFunds(
                         DEXContract,
                         withdrawAmount,
+                        address,
                         refresh,
                         setRefresh
                       )
@@ -320,13 +388,19 @@ export default function UserDashboard() {
                   {withdrawStatus ? (
                     userInvestment.profit ? (
                       <span className="text-green-300">
-                        {(userInvestment.amount * userInvestment.profit) / 100}{" "}
-                        BUSD
+                        {(
+                          (userInvestment.amount * userInvestment.profit) /
+                          10000
+                        ).toFixed(2)}{" "}
+                        USDT
                       </span>
                     ) : (
                       <span className="text-red-300">
-                        {(userInvestment.amount * userInvestment.loss) / 100}{" "}
-                        BUSD
+                        {(
+                          (userInvestment.amount * userInvestment.loss) /
+                          10000
+                        ).toFixed(2)}{" "}
+                        USDT
                       </span>
                     )
                   ) : (
@@ -430,8 +504,8 @@ export default function UserDashboard() {
                   </button> */}
                     <button
                       onClick={() =>
-                        getTransactions(transactions?.cursor).then((_tx) =>
-                          setTransactions(_tx)
+                        getUserTransactions(address, transactions?.cursor).then(
+                          (_tx) => setTransactions(_tx)
                         )
                       }
                       className="text-sm bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded"

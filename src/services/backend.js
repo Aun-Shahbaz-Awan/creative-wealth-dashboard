@@ -13,8 +13,21 @@ export const postUserInvestmentDB = async (_user, _investment) => {
       console.log("User Investment API Error:", error);
     });
 };
+// USER WITHDRAW ---------------------------------------------------------------- [ POST ]
+export const postUserWithdrawDB = async (_user, _investment) => {
+  axios
+    .post(
+      `${process.env.REACT_APP_BASE_URL}/withdraw?address=${_user}&amount=${_investment}`
+    )
+    .then((response) => {
+      console.log("API Responce:", response);
+    })
+    .catch((error) => {
+      console.log("User Investment API Error:", error);
+    });
+};
 
-// GET Total INVESTMENTS ------------------------------------------------------- [ GET ]
+// GET Total INVESTMENTS ---------------------------------------------------------- [ GET ]
 export const getTotalInvestmentDB = async () => {
   const _res = await axios
     .get(`${process.env.REACT_APP_BASE_URL}/investment/total`)
@@ -33,6 +46,19 @@ export const getAllInvestmentDB = async (_user, _investment) => {
     .get(`${process.env.REACT_APP_BASE_URL}/total`)
     .then((response) => {
       return response?.data;
+    })
+    .catch((error) => {
+      console.log("GET TOTAL Responce API Error:", error);
+    });
+  return _res;
+};
+
+// GET ALL USER INVESTMENTS ------------------------------------------------------- [ GET ]
+export const getMonthlyTradeVolumn = async () => {
+  const _res = await axios
+    .get(`${process.env.REACT_APP_BASE_URL}/get-trade-volume`)
+    .then((response) => {
+      return response?.data?.total;
     })
     .catch((error) => {
       console.log("GET TOTAL Responce API Error:", error);

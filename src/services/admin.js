@@ -35,7 +35,7 @@ export const getWithdrawalStatus = async (context) => {
 
 // Get Deposit Status -------------------------------------------------- [ READ ]
 export const getDepositStatus = async (context) => {
-  return await context?.contracts?.tradeContract?.depositOff();
+  return await context?.contracts?.tradeContract?.deposit();
 };
 
 // Get Minimum Investment -------------------------------------------------- [ READ ]
@@ -56,7 +56,16 @@ export const getMaxInvestment = async (context) => {
     });
 };
 
-// Invest Funds by Owner --------------------------------------------------- [ CALL ]
+// Get Maximum User Investment --------------------------------------------- [ READ ]
+export const getMaxUserInvestment = async (context) => {
+  return await context?.contracts?.tradeContract
+    ?.maxUserInvestment()
+    .then((_balance) => {
+      return ethers.utils.formatEther(_balance);
+    });
+};
+
+// Invest Funds by Owner -------------------------------------------------- [ CALL ]
 export const ownerAddFunds = async (context, _amount, refresh, setRefresh) => {
   await context?.contracts?.tokenContract
     .approve(CFContractAddress, ethers.utils.parseEther(_amount.toString()))
@@ -134,16 +143,22 @@ export const ownerWithdrawFunds = async (
     });
 };
 
-// Owner Update ROI ------------------------------------------------------ [ CALL ]
+// Owner Update ROI ------------------------------------------------------- [ CALL ]
 export const ownerUpdateROI = async (context, ROI, refresh, setRefresh) => {
+  console.log(
+    "Incoming Weekly ROI to SmartContract:",
+    ROI.percentage * 100,
+    "& DB:",
+    ROI.percentage
+  );
   await context?.contracts?.tradeContract
-    ?.updateROIWeekly(parseInt(ROI.percentage), ROI.profitStatus)
+    ?.updateROIWeekly(parseInt(ROI.percentage * 100), ROI.profitStatus)
     .then((tx) => {
       toast.promise(
         tx.wait().then((_responce) => {
           console.log("Withdraw Funds Res:", _responce);
           setRefresh(!refresh);
-          postUserROIDB(ROI.profitStatus, parseInt(ROI.percentage));
+          postUserROIDB(ROI.profitStatus, ROI.percentage);
         }),
         {
           loading: "Updating in Progress...",
@@ -202,7 +217,7 @@ export const ownerUpdateDepositStatus = async (
   setRefresh
 ) => {
   await context?.contracts?.tradeContract
-    ?.toggleDepositOff(status)
+    ?.toggleDeposit(status)
     .then((_responce) => {
       toast.promise(
         _responce.wait((tx) => {
@@ -277,6 +292,40 @@ export const ownerUpdateMaxInvestment = async (
         }),
         {
           loading: "Updating Investment in Progress...",
+          success: "Successfully Done!",
+          error: "Something went Wrong!",
+        }
+      );
+    })
+    .catch((error) => {
+      console.log("Reinvest Error: ", error?.error?.data);
+      if (error?.error?.data?.code === 3)
+        toast.error(error?.error?.data?.message);
+      else {
+        toast.error("Something went Wrong!");
+      }
+      return true;
+    });
+};
+
+// Owner Update Maximum Investment --------------------------------------- [ CALL ]
+export const ownerUpdateMaxUserInvestment = async (
+  context,
+  _amount,
+  refresh,
+  setRefresh
+) => {
+  await context?.contracts?.tradeContract
+    ?.updateMaxUserInvestment(ethers.utils.parseEther(_amount.toString()))
+    .then((_responce) => {
+      toast.promise(
+        _responce.wait((tx) => {
+          setRefresh(!refresh);
+          console.log("Withdrawal Status:", tx);
+          return true;
+        }),
+        {
+          loading: "Updating Max User Investment...",
           success: "Successfully Done!",
           error: "Something went Wrong!",
         }

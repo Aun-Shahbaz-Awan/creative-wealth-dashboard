@@ -1,8 +1,8 @@
 import { ethers } from "ethers";
-import { postUserInvestmentDB } from "./backend";
+import { postUserInvestmentDB, postUserWithdrawDB } from "./backend";
 import toast from "react-hot-toast";
 
-// Get User's BUSD Token  Balance ------------------------------------------------------------------- [ CALC ]
+// Get User's BUSD Token  Balance --------------------------------------------------------------------- [ UTIL ]
 export const handleEthDecimalFormat = (number) => {
   return number
     .toFixed(2)
@@ -15,9 +15,25 @@ export const getBUSDBalance = async (contract, u_address) => {
   return await contract?.balanceOf(u_address);
 };
 
-// Get User's BUSD Token  Balance -------------------------------------------------------------------- [ READ ]
+// Get User's BUSD Token  Balance --------------------------------------------------------------------- [ READ ]
 export const getUserInvestment = async (contract, u_address) => {
   return await contract?.userInvestment(u_address);
+};
+
+// Get User's BUSD Token  Balance --------------------------------------------------------------------- [ READ ]
+export const getROI = async (contract) => {
+  return await contract?.roi().then((roi) => {
+    return {
+      percentage: parseInt(roi?.per._hex, 10),
+      profitStatus: roi?.pl,
+      time: parseInt(roi?.time._hex, 10),
+    };
+  });
+};
+
+// Get User's BUSD Token  Balance --------------------------------------------------------------------- [ READ ]
+export const getDepositStatus = async (contract) => {
+  return await contract?.deposit();
 };
 
 // Get User's BUSD Token  Balance --------------------------------------------------------------------- [ CALL ]
@@ -61,6 +77,14 @@ export const investFunds = async (
                     error: "Something went wrong!",
                   }
                 );
+              })
+              .catch((error) => {
+                console.log("Investment Error:", error);
+                if (error?.error?.data?.code === 3)
+                  toast.error(error?.error?.data?.message);
+                else {
+                  toast.error("Something went Wrong!");
+                }
               });
           }
         ),
@@ -77,10 +101,11 @@ export const investFunds = async (
     });
 };
 
-// Withdraw User's Monthly Available Funds ---------------------------------------------------------- [ CALL ]
+// Withdraw User's Monthly Available Funds ------------------------------------------------------------ [ CALL ]
 export const withdrawFunds = async (
   dexContract,
   amount,
+  u_address,
   refresh,
   setRefresh
 ) => {
@@ -90,6 +115,12 @@ export const withdrawFunds = async (
       toast.promise(
         tx.wait().then((_responce) => {
           console.log("Withdraw Funds Tx Res:", _responce);
+          postUserWithdrawDB(
+            u_address,
+            ethers.utils.parseEther(amount.toString()).toString()
+          ).then((db_res) => {
+            console.log("DB Respoce:", db_res);
+          });
           toast.success("Successfully Done!");
           setRefresh(!refresh);
           return true;
@@ -111,7 +142,7 @@ export const withdrawFunds = async (
     });
 };
 
-// Get User's BUSD Token  Balance ------------------------------------------------------------------- [ CALL ]
+// Get User's BUSD Token  Balance --------------------------------------------------------------------- [ CALL ]
 export const reinvestFunds = async (
   dexContract,
   amount,
@@ -145,7 +176,7 @@ export const reinvestFunds = async (
     });
 };
 
-// Get User's BUSD Token  Balance ------------------------------------------------ [ CALL ]
+// Get User's BUSD Token  Balance --------------------------------------------------------------------- [ CALL ]
 export const weeklyWithdraw = async (dexContract, refresh, setRefresh) => {
   await dexContract
     ?.weeklyWithdraw()
@@ -174,7 +205,7 @@ export const weeklyWithdraw = async (dexContract, refresh, setRefresh) => {
     });
 };
 
-// Get User's BUSD Token  Balance ------------------------------------------------ [ CALL ]
+// Get User's BUSD Token  Balance --------------------------------------------------------------------- [ READ ]
 export const getWithdrawStatus = async (dexContract) => {
   return await dexContract?.withdrawl();
 };

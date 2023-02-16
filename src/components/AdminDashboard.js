@@ -17,8 +17,14 @@ import {
   getMaxInvestment,
   ownerUpdateMinInvestment,
   ownerUpdateMaxInvestment,
+  ownerUpdateMaxUserInvestment,
+  getMaxUserInvestment,
 } from "../services/admin";
-import { getAllInvestmentDB, getTotalInvestmentDB } from "../services/backend";
+import {
+  getAllInvestmentDB,
+  getTotalInvestmentDB,
+  getMonthlyTradeVolumn,
+} from "../services/backend";
 import { getTransactions } from "./../services/moralis";
 import TotalInvestmentChart from "./charts/TotalInvestmentChart";
 import { Toaster } from "react-hot-toast";
@@ -38,27 +44,31 @@ function AdminDashboard() {
   const [allInvestments, setAllInvestments] = useState({});
   const [showGraph, setShowGraph] = useState(false); // To resolve rander issue
   const [transactions, setTransactions] = React.useState({}); // Past Transactions
+  const [monthlyTrade, setMonthlyTrade] = React.useState(0); // Past Transactions
   const [totalInvestment, setTotalInvestment] = React.useState(0); // Past Transactions
   const [minMaxInvestment, setMinMaxInvestment] = React.useState({
     min: 0,
+    maxUser: 0,
     max: 0,
   }); // Past Transactions
   const [updateMinMaxInvestment, setUpdateMinMaxInvestment] = React.useState({
     min: 0,
     max: 0,
+    maxUser: 0,
   }); // Update Transactions
   const [refresh, setRefresh] = React.useState(true);
 
   const fetchInvestments = async () => {
     const _min = await getMinInvestment(context);
+    const _maxUser = await getMaxUserInvestment(context);
     const _max = await getMaxInvestment(context);
-    setMinMaxInvestment({ min: _min, max: _max });
+    setMinMaxInvestment({ min: _min, maxUser: _maxUser, max: _max });
   };
-  console.log("Min/Max:", minMaxInvestment);
+  // console.log("Min/Max:", minMaxInvestment);
 
   useEffect(() => {
     if (signer) {
-      console.log("REFRESH:");
+      // console.log("REFRESH:");
       getContractBalance(context).then((balance) =>
         setContractBalance(balance)
       );
@@ -97,13 +107,18 @@ function AdminDashboard() {
   const fetchBackendRecord = () => {
     getTransactions(null).then((_transactions) => {
       setTransactions(_transactions);
-      console.log("Transactions:", transactions);
+      // console.log("Transactions:", transactions);
     });
     getTotalInvestmentDB().then((_total) => {
       setTotalInvestment(ethers.utils.formatEther(_total.toString()));
     });
+    getMonthlyTradeVolumn().then((_volumn) =>
+      setMonthlyTrade(ethers.utils.formatEther(_volumn))
+    );
+    // getMonthlyTradeVolumn().then((_volumn) =>
+    //   console.log("MT Volumn:", ethers.utils.formatEther(_volumn))
+    // );
   };
-  console.log("All Investments UP:", allInvestments);
 
   useEffect(() => {
     fetchBackendRecord();
@@ -119,23 +134,27 @@ function AdminDashboard() {
         <div className="w-full rounded-md xl:col-span-2">
           <div className="container grid gap-3 mx-auto text-center grid-cols-1 xl:grid-cols-2 mb-3">
             <div className="w-full text-left p-3 rounded-md bg-gray-900 text-white h-24">
+              {/* <h3 className="text-primary_gray">Total Investments</h3>
+              <h3>{totalInvestment} USDT</h3> */}
               <h3 className="text-primary_gray">Total Trade</h3>
-              <h3>{totalInvestment}0 BUSD</h3>
+              <h3> {monthlyTrade ? monthlyTrade : "--:--"} USDT</h3>
             </div>
             <div className="w-full text-left p-3 rounded-md bg-gray-900 text-white h-24">
               <h3 className="text-primary_gray">Wallet Balance</h3>
-              <h3>{ownerBalance}0 BUSD</h3>
+              <h3>{parseInt(ownerBalance).toFixed(2)} USDT</h3>
             </div>
           </div>
         </div>
         {/* COLUMN 2 - Update Min/Max ------------------------------------------------------------------------------------ */}
         <div className="w-full rounded-md xl:col-span-5 ">
-          <div className="container grid gap-3 mx-auto text-center grid-cols-1 xl:grid-cols-2 mb-3">
-            {/* Min -------------------------------------- */}
+          <div className="container grid gap-3 mx-auto text-center grid-cols-1 xl:grid-cols-3 mb-3">
+            {/* Min Investment -------------------------------------- */}
             <div className="w-full text-left p-3 rounded-md bg-gray-900 text-white h-24">
               <h3 className="text-primary_gray">
-                Current Min Investment:{" "}
-                <span className="text-white">{minMaxInvestment?.min} BUSD</span>
+                Min User Investment:{" "}
+                <span className="text-white">
+                  {parseInt(minMaxInvestment?.min).toFixed(2)} USDT
+                </span>
               </h3>
               <div className="flex justify-between w-full mt-2">
                 <input
@@ -167,17 +186,59 @@ function AdminDashboard() {
                 </button>
               </div>
             </div>
-            {/* Max -------------------------------------- */}
+            {/* Max User Investment -------------------------------------- */}
             <div className="w-full text-left p-3 rounded-md bg-gray-900 text-white h-24">
               <h3 className="text-primary_gray">
-                Current Max Investment:{" "}
-                <span className="text-white">{minMaxInvestment?.max} BUSD</span>
+                Max User Investment:{" "}
+                <span className="text-white">
+                  {parseInt(minMaxInvestment?.maxUser).toFixed(2)} USDT
+                </span>
               </h3>
               <div className="flex justify-between w-full mt-2">
                 <input
                   id="name"
                   type="number"
                   placeholder="Max Investment"
+                  onChange={(e) => {
+                    setUpdateMinMaxInvestment({
+                      ...updateMinMaxInvestment,
+                      maxUser: e.target.value,
+                    });
+                  }}
+                  className="w-2/3 mr-2 pl-4 rounded-sm text-primary border border-primary focus:ring focus:ring-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    ownerUpdateMaxUserInvestment(
+                      context,
+                      updateMinMaxInvestment.maxUser,
+                      refresh,
+                      setRefresh
+                    )
+                  }
+                  disabled={
+                    updateMinMaxInvestment.maxUser === "" ? true : false
+                  }
+                  className="w-1/3 py-2 font-semibold rounded-sm bg-primary text-white disabled:bg-primary_gray"
+                >
+                  Update
+                </button>
+              </div>
+            </div>
+            {/* Max Investment -------------------------------------- */}
+            <div className="w-full text-left p-3 rounded-md bg-gray-900 text-white h-24">
+              <h3 className="text-primary_gray">
+                Contract Limit:{" "}
+                <span className="text-white">
+                  {parseInt(minMaxInvestment?.max).toFixed(2)} USDT
+                </span>
+              </h3>
+              <div className="flex justify-between w-full mt-2">
+                <input
+                  id="name"
+                  type="number"
+                  placeholder="Update Limit"
                   onChange={(e) => {
                     setUpdateMinMaxInvestment({
                       ...updateMinMaxInvestment,
@@ -265,7 +326,7 @@ function AdminDashboard() {
             <div className="w-full flex justify-between items-center mb-4">
               <h3 className="text-primary_gray">Update Deposit Status</h3>
               <div className="flex items-center">
-                <p className="mr-2">{depositStatus ? "NO" : "OFF"}</p>
+                <p className="mr-2">{depositStatus ? "ON" : "OFF"}</p>
                 <Switch
                   checked={depositStatus}
                   onChange={() =>
@@ -294,7 +355,7 @@ function AdminDashboard() {
             <div className="w-full flex justify-between items-center mb-2">
               <h3 className="text-primary_gray">Update Withdrawal Status</h3>
               <div className="flex items-center">
-                <p className="mr-2">{withdrawalStatus ? "NO" : "OFF"}</p>
+                <p className="mr-2">{withdrawalStatus ? "ON" : "OFF"}</p>
                 <Switch
                   checked={withdrawalStatus}
                   onChange={() =>
@@ -325,7 +386,7 @@ function AdminDashboard() {
             {/* Withdraw / Add ------------------------------------------------------------------------- COL1-MOD3 */}
             <div className="w-full text-left mb-2">
               <h3 className="text-primary_gray">Balance Available</h3>
-              <h3>{contractBalance} BUSD</h3>
+              <h3>{parseInt(contractBalance).toFixed(2)} USDT</h3>
             </div>
             {/* Add Funds */}
             <div className="flex justify-between w-full mb-3">
