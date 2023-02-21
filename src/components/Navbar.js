@@ -6,7 +6,7 @@ function Navbar() {
   return (
     <header class="bg-white bg-opacity-5 shadow-lg">
       <div class="container mx-auto flex justify-between items-center h-24">
-        <a href="/">
+        <a href="https://creativewealth.finance/">
           <img class="h-8 pl-3 md:pl-0 sm:h-10 md:h-16" src={Logo} alt="" />
         </a>
         {/* <nav class="contents font-semibold text-base lg:text-lg">

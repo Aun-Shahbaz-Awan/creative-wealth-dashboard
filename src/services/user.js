@@ -73,7 +73,7 @@ export const investFunds = async (
                     setRefresh(!refresh);
                   }),
                   {
-                    loading: "Tx 2 of 2: Your funds on the way...",
+                    loading: "Tx 2 of 2: Your funds are on the way...",
                     success: "Successfully Done!",
                     error: "Something went wrong!",
                   }

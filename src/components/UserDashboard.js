@@ -179,8 +179,11 @@ export default function UserDashboard() {
       // Render a complete state
       return (
         <span className="text-green-300">
+          {console.log("UI:", userInvestment?.withdrawable)}
           {userInvestment?.withdrawable
-            ? " " + parseInt(userInvestment?.withdrawable).toFixed(2) + " USDT"
+            ? " " +
+              parseFloat(userInvestment?.withdrawable)?.toFixed(2) +
+              " USDT"
             : ""}
         </span>
       );
@@ -212,13 +215,13 @@ export default function UserDashboard() {
             <div className="container grid gap-3 mx-auto text-center grid-cols-1 xl:grid-cols-2">
               <div className="w-full text-left p-3 rounded-md bg-gray-900 text-white h-24">
                 <h3 className="text-primary_gray">USDT Balance</h3>
-                <h3>{busdBalance} USDT</h3>
+                <h3>{parseFloat(busdBalance)?.toFixed(2)} USDT</h3>
               </div>
               <div className="w-full text-left p-3 rounded-md bg-gray-900 text-white h-24">
                 <h3 className="text-primary_gray">USDT Invested</h3>
                 <h3>
                   {userInvestment?.invested_status === true
-                    ? userInvestment?.amount
+                    ? parseFloat(userInvestment?.amount)?.toFixed(2)
                     : ""}
                   {userInvestment?.invested_status === true ? " USDT" : "--:--"}
                 </h3>
@@ -230,7 +233,7 @@ export default function UserDashboard() {
             <div className="container grid gap-6 mx-auto text-center lg:grid-cols-1 xl:grid-cols-3">
               <div className="w-full rounded-md bg-primary_light drop-shadow-lg text-left p-3 pl-6 h-24 lg:col-span-2">
                 <div>
-                  <h3 className="text-white">This Week's ROI</h3>
+                  <h3 className="text-white">This Week's ROI:</h3>
                   {weeklyROI?.profitStatus ? (
                     <span className="text-green-800">
                       {weeklyROI?.percentage.toFixed(2)}%
@@ -385,7 +388,7 @@ export default function UserDashboard() {
               {/* ROI */}
               <div className="w-full flex justify-between px-3 pt-2">
                 <div className="w-full text-left">
-                  <h3 className="text-primary_gray">This Week's ROI</h3>
+                  <h3 className="text-primary_gray">Total Rewards</h3>
                   {withdrawStatus ? (
                     userInvestment.profit ? (
                       <span className="text-green-300">
@@ -415,7 +418,7 @@ export default function UserDashboard() {
                   }
                   className="w-2/3 h-10 px-0 text-sm font-semibold rounded-full border border-gray-100 hover:bg-primary text-white"
                 >
-                  Claim ROI
+                  Claim Rewards
                 </button>
               </div>
             </div>
