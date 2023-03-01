@@ -11,8 +11,31 @@ import { chain, configureChains, createClient, WagmiConfig } from "wagmi";
 import { publicProvider } from "wagmi/providers/public";
 import { ContractProvider } from "./context/contracts";
 
+const binanceChain = {
+  id: 56,
+  name: "Binance Smart Chain Mainnet",
+  network: "binance",
+  iconUrl: "https://icons.llamao.fi/icons/chains/rsz_binance.jpg",
+  iconBackground: "#fff",
+  nativeCurrency: {
+    decimals: 18,
+    name: "Binance",
+    symbol: "BNB",
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://bsc-dataseed1.ninicoin.io"],
+    },
+  },
+  blockExplorers: {
+    default: { name: "SnowTrace", url: "https://bscscan.com/" },
+    etherscan: { name: "SnowTrace", url: "https://bscscan.com/" },
+  },
+  testnet: false,
+};
+
 const { chains, provider } = configureChains(
-  [chain.polygonMumbai, chain.polygon, chain.optimism, chain.arbitrum],
+  [binanceChain],
   [
     // alchemyProvider({ alchemyId: "yJKPlv6vVpN7wcG0-eeLfIw9jRS0CJ1p" }),
     publicProvider(),
